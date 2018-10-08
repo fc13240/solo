@@ -1,24 +1,25 @@
 /*
- * Copyright (c) 2010-2017, b3log.org & hacpai.com
+ * Solo - A small and beautiful blogging system written in Java.
+ * Copyright (c) 2010-2018, b3log.org & hacpai.com
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.b3log.solo.processor.console;
 
-
 import org.b3log.latke.Keys;
 import org.b3log.latke.Latkes;
-import org.b3log.latke.ioc.inject.Inject;
+import org.b3log.latke.ioc.Inject;
 import org.b3log.latke.logging.Level;
 import org.b3log.latke.logging.Logger;
 import org.b3log.latke.model.Plugin;
@@ -30,28 +31,24 @@ import org.b3log.latke.servlet.annotation.RequestProcessing;
 import org.b3log.latke.servlet.annotation.RequestProcessor;
 import org.b3log.latke.servlet.renderer.JSONRenderer;
 import org.b3log.latke.util.Requests;
-import org.b3log.solo.processor.console.common.ProcessAuthAdvice;
-import org.b3log.solo.processor.renderer.ConsoleRenderer;
 import org.b3log.solo.service.PluginMgmtService;
 import org.b3log.solo.service.PluginQueryService;
-import org.b3log.solo.util.QueryResults;
 import org.json.JSONObject;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
 
-
 /**
  * Plugin console request processing.
  *
  * @author <a href="http://88250.b3log.org">Liang Ding</a>
- * @author <a href="mailto:wmainlove@gmail.com">Love Yao</a>
- * @version 1.1.0.0, Jan 17, 2013
+ * @author <a href="https://hacpai.com/member/mainlove">Love Yao</a>
+ * @version 1.1.0.3, Sep 25, 2018
  * @since 0.4.0
  */
 @RequestProcessor
-@Before(adviceClass = ProcessAuthAdvice.class)
+@Before(adviceClass = ConsoleAdminAuthAdvice.class)
 public class PluginConsole {
 
     /**
@@ -89,19 +86,14 @@ public class PluginConsole {
      * </pre>
      * </p>
      *
-     * @param request  the specified http servlet request
-     * @param response the specified http servlet response
-     * @param context  the specified http request context
+     * @param context           the specified http request context
+     * @param requestJSONObject the specified requeset json object
      * @throws Exception exception
      */
     @RequestProcessing(value = "/console/plugin/status/", method = HTTPRequestMethod.PUT)
-    public void setPluginStatus(final HttpServletRequest request, final HttpServletResponse response, final HTTPRequestContext context)
-            throws Exception {
-
+    public void setPluginStatus(final HTTPRequestContext context, final JSONObject requestJSONObject) throws Exception {
         final JSONRenderer renderer = new JSONRenderer();
         context.setRenderer(renderer);
-
-        final JSONObject requestJSONObject = Requests.parseRequestJSONObject(request, response);
 
         final String pluginId = requestJSONObject.getString(Keys.OBJECT_ID);
         final String status = requestJSONObject.getString(Plugin.PLUGIN_STATUS);
@@ -165,8 +157,7 @@ public class PluginConsole {
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, e.getMessage(), e);
 
-            final JSONObject jsonObject = QueryResults.defaultResult();
-
+            final JSONObject jsonObject = new JSONObject().put(Keys.STATUS_CODE, false);
             renderer.setJSONObject(jsonObject);
             jsonObject.put(Keys.MSG, langPropsService.get("getFailLabel"));
         }
@@ -175,22 +166,16 @@ public class PluginConsole {
     /**
      * get the info of the specified pluginoId,just fot the plugin-setting.
      *
-     * @param request  the specified http servlet request
-     * @param response the specified http servlet response
-     * @param context  the specified http request context
-     * @param renderer the specified {@link ConsoleRenderer}
-     * @throws Exception exception
+     * @param context           the specified http request context
+     * @param requestJSONObject the specified request json object
+     * @param renderer          the specified {@link ConsoleRenderer}
      */
     @RequestProcessing(value = "/console/plugin/toSetting", method = HTTPRequestMethod.POST)
-    public void toSetting(final HttpServletRequest request, final HttpServletResponse response, final HTTPRequestContext context,
-                          final ConsoleRenderer renderer) throws Exception {
-
+    public void toSetting(final HTTPRequestContext context, final JSONObject requestJSONObject, final ConsoleRenderer renderer) {
         context.setRenderer(renderer);
 
         try {
-            final JSONObject requestJSONObject = Requests.parseRequestJSONObject(request, response);
             final String pluginId = requestJSONObject.getString(Keys.OBJECT_ID);
-
             final String setting = pluginQueryService.getPluginSetting(pluginId);
 
             renderer.setTemplateName("admin-plugin-setting.ftl");
@@ -200,41 +185,32 @@ public class PluginConsole {
 
             dataModel.put(Plugin.PLUGIN_SETTING, setting);
             dataModel.put(Keys.OBJECT_ID, pluginId);
-
         } catch (final Exception e) {
             LOGGER.log(Level.ERROR, e.getMessage(), e);
 
-            final JSONObject jsonObject = QueryResults.defaultResult();
+            final JSONObject jsonObject = new JSONObject().put(Keys.STATUS_CODE, false);
             final JSONRenderer jsonRenderer = new JSONRenderer();
-
             jsonRenderer.setJSONObject(jsonObject);
             jsonObject.put(Keys.MSG, langPropsService.get("getFailLabel"));
         }
-
     }
 
     /**
      * update the setting of the plugin.
      *
-     * @param request  the specified http servlet request
-     * @param response the specified http servlet response
-     * @param context  the specified http request context
-     * @param renderer the specified {@link ConsoleRenderer}
-     * @throws Exception exception
+     * @param context           the specified http request context
+     * @param requestJSONObject the specified request json object
+     * @param renderer          the specified {@link ConsoleRenderer}
      */
     @RequestProcessing(value = "/console/plugin/updateSetting", method = HTTPRequestMethod.POST)
-    public void updateSetting(final HttpServletRequest request, final HttpServletResponse response, final HTTPRequestContext context,
-                              final JSONRenderer renderer) throws Exception {
-
+    public void updateSetting(final HTTPRequestContext context, final JSONObject requestJSONObject, final JSONRenderer renderer) {
         context.setRenderer(renderer);
 
-        final JSONObject requestJSONObject = Requests.parseRequestJSONObject(request, response);
-        final String pluginoId = requestJSONObject.getString(Keys.OBJECT_ID);
-        final String settings = requestJSONObject.getString(Plugin.PLUGIN_SETTING);
+        final String pluginoId = requestJSONObject.optString(Keys.OBJECT_ID);
+        final String settings = requestJSONObject.optString(Plugin.PLUGIN_SETTING);
 
         final JSONObject ret = pluginMgmtService.updatePluginSetting(pluginoId, settings);
 
         renderer.setJSONObject(ret);
-
     }
 }

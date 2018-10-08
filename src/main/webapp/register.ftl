@@ -1,8 +1,37 @@
+<#--
+
+    Solo - A small and beautiful blogging system written in Java.
+    Copyright (c) 2010-2018, b3log.org & hacpai.com
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+-->
 <#include "macro-common-page.ftl">
 
 <@commonPage "${registerSoloUserLabel}!">
 <h2>${registerSoloUserLabel}</h2>
-<div class="form">
+<div id="github">
+    <div class="github__icon" href="${servePath}/oauth/github/redirect"
+         onclick="window.location.href = '${servePath}/oauth/github/redirect';$('#github').addClass('github--loading')">
+        <img src="${staticServePath}/images/github-init.gif"/>
+    </div>
+    <button class="hover"
+            onclick="window.location.href = '${servePath}/oauth/github/redirect';$('#github').addClass('github--loading')">${useGitHubAccountLoginLabel}</button>
+    <br>
+    <span onclick="$('#github').hide();$('.form').show()">${useLocalAccountLabel}</span>
+</div>
+<div class="form none">
     <label for="userEmail">
     ${commentEmail1Label}
     </label>
@@ -23,7 +52,7 @@
     ${userPasswordConfirm1Label}
     </label>
     <input type="password" id="userPasswordConfirm" />
-    <button onclick='getUserInfo();'>${saveLabel}</button>
+    <button onclick='getUserInfo();'>${registerSoloUserLabel}</button>
     <span id="tip" ></span>
 </div>
 <script type="text/javascript" src="${staticServePath}/js/lib/jquery/jquery.min.js" charset="utf-8"></script>
